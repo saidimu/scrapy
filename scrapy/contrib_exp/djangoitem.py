@@ -15,6 +15,7 @@ class DjangoItemMeta(ItemMeta):
                     if model_field.name not in cls.fields:
                         cls.fields[model_field.name] = Field()
                     cls._model_fields.append(model_field.name)
+                    import pdb; pdb.set_trace()
                     cls[model_field.name] = model_field.value_from_object[cls]  ## copy Django model instance values into DjangoItem
 
         return cls

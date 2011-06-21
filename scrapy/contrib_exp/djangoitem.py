@@ -1,5 +1,5 @@
 from scrapy.item import Field, Item, ItemMeta
-
+from scrapy.http import Response
 
 class DjangoItemMeta(ItemMeta):
 
@@ -26,7 +26,7 @@ class DjangoItem(Item):
     __metaclass__ = DjangoItemMeta
 
     django_model = None
-    django_instance = None
+    django_instance = None  ## FIXME: TODO: this doesn't seem to be needed any more. Remove?
     
 #    def save(self, commit=True):
 #        modelargs = dict((f, self.get(f, None)) for f in self._model_fields)
@@ -47,18 +47,30 @@ class DjangoItem(Item):
                               
 #        self.django_instance = self.django_model(**modelargs)
 #        self.django_instance = self.django_model.objects.get(**modelargs)   ## assuming only 1 result
-        self._values['django_instance'] = self.django_model.objects.get(**modelargs)   ## assuming only 1 result
+#        import pdb; pdb.set_trace()
+        self._values['django_instance'] = self.django_model.objects.get(**modelargs)   ## FIXME: assuming only 1 result
         
         ## now populate empty fields in this Item with values from the just-retrieved django instance
         for f in self._model_fields:
             if not self.get(f, None):
                 self[f] = getattr(self['django_instance'], f)
-        import pdb; pdb.set_trace()
+#        import pdb; pdb.set_trace()
+#        from scrapy.shell import inspect_response
+#        inspect_response(Response(url='http://blah/'))
         
         
     def save_to_db(self):
-        if not self.django_instance:
-            self.populate_item()
+#        import pdb; pdb.set_trace()
+#        from scrapy.shell import inspect_response
+#        inspect_response(Response(url='http://blah/'))
+        
+        if not self['django_instance']:    ## TODO: FIXME: will this overwrite field values in an Item instance with some fields already filled?
+            self.populate_fields()
 
-        self.django_instance = self.django_instance.save()
-        return self.django_instance
+        ## copy values from this Item instance into the Django instance, then save the Django instance
+        ## FIXME: TODO: I really shouldn't be setting the primary-key as well. Find a way to exlcude it.
+        for model_field in self._model_fields:
+            setattr(self._values['django_instance'], model_field, self[model_field])
+            
+        self._values['django_instance'] = self._values['django_instance'].save()
+        return self['django_instance']
